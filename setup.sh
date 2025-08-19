@@ -24,8 +24,24 @@ snap install code --classic -y
 
 git config --global credential.credentialStore gpg
 
+clear
+
 read -p "Name for git: " gitName
 git config --global user.name $gitName
 
 read -p "Email for git: " gitEmail
 git config --global user.email $gitEmail
+
+clear
+
+echo "Generating GPG key to store git credentials..."
+gpg --gen-key
+
+read -p "Re-enter the name used to generate the GPG key: " passName
+
+pass init $passName
+
+clear
+
+echo "Enter git token to be used for this device: "
+pass insert git
