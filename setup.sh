@@ -61,5 +61,6 @@ rm ~/miniconda3/miniconda.sh
 source ~/miniconda3/bin/activate
 conda init --all
 conda config --set auto_activate false
+pip install uv
 
 exec bash
