@@ -22,6 +22,10 @@ apt install -y git pass python-is-python3 python3-pip
 snap install discord
 snap install -y code --classic
 
+#
+# Set up Git, store token with pass+gpg encryption
+#
+
 git config --global credential.credentialStore gpg
 
 clear
@@ -45,3 +49,17 @@ clear
 
 echo "Enter git token to be used for this device: "
 pass insert git
+
+#
+# Install Miniconda
+#
+
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash ~/Miniconda3-latest-Linux-x86_64.sh
+source ~/.bashrc
+conda config --set auto_activate_base false
+
+
+
+
+
