@@ -14,8 +14,18 @@ if [ ! -a ~/.inputrc ]; then echo '$include /etc/inputrc' > ~/.inputrc; fi
 # Add shell-option to ~/.inputrc to enable case-insensitive tab completion
 echo 'set completion-ignore-case On' >> ~/.inputrc
 
-
 #
 # Install packages
 #
 
+apt install git pass python-is-python3 
+snap install discord
+snap install code --classic -y
+
+git config --global credential.credentialStore gpg
+
+read -p "Name for git: " gitName
+git config --global user.name $gitName
+
+read -p "Email for git: " gitEmail
+git config --global user.email $gitEmail
