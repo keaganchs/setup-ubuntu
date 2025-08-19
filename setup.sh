@@ -18,9 +18,9 @@ echo 'set completion-ignore-case On' >> ~/.inputrc
 # Install packages
 #
 
-apt install git pass python-is-python3 
+apt install -y git pass python-is-python3 python3-pip
 snap install discord
-snap install code --classic -y
+snap install -y code --classic
 
 git config --global credential.credentialStore gpg
 
