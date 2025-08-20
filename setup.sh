@@ -18,7 +18,7 @@ echo 'set completion-ignore-case On' >> ~/.inputrc
 # Install packages
 #
 
-apt install -y git pass python-is-python3 python3-pip
+apt install -y git pass python-is-python3 python3-pip pulseaudio
 snap install discord
 snap install -y code --classic
 
@@ -64,3 +64,14 @@ conda config --set auto_activate false
 pip install uv
 
 exec bash
+
+#
+# PulseAudio setup
+#
+sed -i '/; default-sample-rate = 44100/c\default-sample-rate = 192000' /etc/pulse/daemon.conf
+sed -i '/; default-sample-format = s16le/c\default-sample-format = s24le' /etc/pulse/daemon.conf
+pulseaudio -k
+pulseaudio -D
+
+
+
