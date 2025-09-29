@@ -18,7 +18,7 @@ echo 'set completion-ignore-case On' >> ~/.inputrc
 # Install packages
 #
 
-apt install -y git pass python-is-python3 python3-pip pulseaudio
+apt install -y git pass python-is-python3 python3-pip pulseaudio build-essential procps curl file git
 snap install discord
 snap install -y code --classic
 
@@ -73,5 +73,15 @@ sed -i '/; default-sample-format = s16le/c\default-sample-format = s24le' /etc/p
 pulseaudio -k
 pulseaudio -D
 
+#
+# HomeBrew
+#
+
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.bashrc
+
+brew install thefuck
 
 
