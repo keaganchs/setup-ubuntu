@@ -83,5 +83,5 @@ test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/bre
 echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.bashrc
 
 brew install thefuck
-
+echo "eval $(thefuck --alias)" >> ~/.bashrc
 
