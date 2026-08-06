@@ -1,0 +1,7 @@
+# Case-insensitive tab completion, with the matches shown immediately.
+set completion-ignore-case On
+set show-all-if-ambiguous On
+
+# Up/Down search history for what's already typed on the line.
+"\e[A": history-search-backward
+"\e[B": history-search-forward

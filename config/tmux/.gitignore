@@ -1,0 +1,4 @@
+# tpm installs the rest of the plugins in here at runtime; only tpm itself
+# is tracked (as a submodule).
+plugins/*
+!plugins/tpm

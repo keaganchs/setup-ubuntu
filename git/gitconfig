@@ -1,0 +1,26 @@
+# Tracked git settings. Included from ~/.gitconfig by install.sh, so the
+# machine-local bits (user.name, user.email, credentials) stay untracked.
+
+[init]
+	defaultBranch = main
+
+[credential]
+	credentialStore = gpg
+
+[pull]
+	rebase = false
+
+[push]
+	autoSetupRemote = true
+
+[core]
+	editor = nvim
+
+[diff]
+	colorMoved = default
+
+[alias]
+	st = status
+	co = checkout
+	br = branch
+	lg = log --oneline --graph --decorate
