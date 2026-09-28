@@ -42,19 +42,28 @@ vim.keymap.set("i", "jk", "<Esc>")
 vim.keymap.set("i", "kj", "<Esc>")
 
 vim.pack.add({ "https://github.com/christoomey/vim-tmux-navigator" })
-vim.keymap.set("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>")
-vim.keymap.set("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>")
-vim.keymap.set("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>")
-vim.keymap.set("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>")
+-- Alt, not Ctrl, to match tmux.conf: Ctrl-h is the byte a terminal sends for
+-- Ctrl-Backspace, which is a word delete here rather than a pane move.
+vim.keymap.set("n", "<M-h>", "<cmd>TmuxNavigateLeft<CR>")
+vim.keymap.set("n", "<M-j>", "<cmd>TmuxNavigateDown<CR>")
+vim.keymap.set("n", "<M-k>", "<cmd>TmuxNavigateUp<CR>")
+vim.keymap.set("n", "<M-l>", "<cmd>TmuxNavigateRight<CR>")
 
-vim.pack.add({ "https://github.com/folke/tokyonight.nvim" })
-vim.cmd("colorscheme tokyonight-night")
+-- Ctrl-Backspace deletes the word before the cursor. <C-h> is what the terminal
+-- sends for it; nvim's own default for <C-h> in insert mode is a plain
+-- backspace, which Backspace itself already does.
+vim.keymap.set("i", "<C-h>", "<C-w>")
+vim.keymap.set("c", "<C-h>", "<C-w>")
 
+require("user/colorscheme")
 require("user/oil")
 require("user/copilot")
 require("user/lsp")
 require("user/treesitter")
 require("user/telescope")
+require("user/yazi")
+require("user/markdown")
 require("user/dressing")
 require("user/conform")
 require("user/teamtype")
+require("user/latex")

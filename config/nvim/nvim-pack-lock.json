@@ -12,6 +12,10 @@
       "rev": "2d7c2db2507fa3c4956142ee607431ddb2828639",
       "src": "https://github.com/stevearc/dressing.nvim"
     },
+    "markdown-preview.nvim": {
+      "rev": "a923f5fc5ba36a3b17e289dc35dc17f66d0548ee",
+      "src": "https://github.com/iamcco/markdown-preview.nvim"
+    },
     "mason-lspconfig.nvim": {
       "rev": "67029ccdac1ef8941e13b826417bc0ffac24cc86",
       "src": "https://github.com/mason-org/mason-lspconfig.nvim"
@@ -48,13 +52,29 @@
       "rev": "427b576c16792edad01a92b89721d923c19ad60f",
       "src": "https://github.com/nvim-telescope/telescope.nvim"
     },
-    "tokyonight.nvim": {
-      "rev": "cdc07ac78467a233fd62c493de29a17e0cf2b2b6",
-      "src": "https://github.com/folke/tokyonight.nvim"
+    "texpresso.vim": {
+      "rev": "5630dca6090787c446e72886812a1b6a5716c2fa",
+      "src": "https://github.com/let-def/texpresso.vim"
+    },
+    "ultisnips": {
+      "rev": "0ca6a21386021e74a91034365809dcca56ed13f0",
+      "src": "https://github.com/SirVer/ultisnips"
     },
     "vim-tmux-navigator": {
       "rev": "e41c431a0c7b7388ae7ba341f01a0d217eb3a432",
       "src": "https://github.com/christoomey/vim-tmux-navigator"
+    },
+    "vimtex": {
+      "rev": "06d31c8c3c74614e19e12fd1974dfc504e2bbce2",
+      "src": "https://github.com/lervag/vimtex"
+    },
+    "vscode.nvim": {
+      "rev": "aa1102a7e15195c9cca22730b09224a7f7745ba8",
+      "src": "https://github.com/Mofiqul/vscode.nvim"
+    },
+    "yazi.nvim": {
+      "rev": "f5f0b169beaf16bb5fca50e36015b389c168ad5e",
+      "src": "https://github.com/mikavilpas/yazi.nvim"
     }
   }
 }

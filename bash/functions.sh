@@ -21,6 +21,17 @@ tm() {
   fi
 }
 
+# tmux resume / tmux r: start tmux and restore the last tmux-resurrect save
+# (config/tmux/scripts/resume.sh). Everything else goes straight to tmux. Bare
+# `r` is free to take: tmux accepts a command prefix only when it's unambiguous,
+# and r would match several.
+tmux() {
+  case "${1:-}" in
+    resume|r) shift; "$HOME/.config/tmux/scripts/resume.sh" "$@" ;;
+    *) command tmux "$@" ;;
+  esac
+}
+
 # Auto-activate ./.venv on cd, and deactivate when leaving the project.
 _venv_auto() {
   if [ -n "$VIRTUAL_ENV" ] && [[ "$PWD/" != "$(dirname "$VIRTUAL_ENV")/"* ]]; then

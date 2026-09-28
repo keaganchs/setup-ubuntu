@@ -46,20 +46,113 @@ append_once() {
   grep -qxF -- "$line" "$file" || printf '%s\n' "$line" >> "$file"
 }
 
-# Symlink src -> dst, moving anything already at dst out of the way.
-link() {
+# append_once, but first drop any line matching $pattern that isn't the line we
+# want -- the same directive pointing at a different checkout of this repo.
+#
+# Appending alone isn't enough: moving the clone (or making a second one and
+# deleting the first) leaves the old path behind, and since the wiring is a
+# `source`/`$include` of a file that no longer exists, every new shell opens with
+# "No such file or directory". Only lines this repo writes are matched, so
+# anything else in the file is left alone.
+append_once_owned() {
+  local file="$1" line="$2" pattern="$3" stale tmp
+  touch "$file"
+
+  stale="$(grep -E -- "$pattern" "$file" | grep -xvF -- "$line")"
+  if [ -n "$stale" ]; then
+    while IFS= read -r s; do
+      warn "$file pointed at another checkout: $s"
+    done <<< "$stale"
+    warn "  replaced with $line"
+    tmp="$(mktemp)"
+    # This drops the wanted line too if it was already present; the append below
+    # puts it back, at the end. (awk would be the obvious tool here, but it
+    # unescapes -v assignments, so the backslashes in $pattern wouldn't survive
+    # the trip and the filter would quietly match nothing.)
+    grep -vE -- "$pattern" "$file" > "$tmp"
+    # 1 just means nothing was left, which is a legitimate result; only a real
+    # grep failure should stop us from writing.
+    if [ "$?" -gt 1 ]; then
+      err "could not rewrite $file; left as is"
+      rm -f "$tmp"
+      return 1
+    fi
+    # Written back through the original file so its mode and owner survive.
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+  fi
+
+  grep -qxF -- "$line" "$file" || printf '%s\n' "$line" >> "$file"
+}
+
+# Copy a config tree into ~/.config/<tool>, where the tool insists on finding it.
+#
+# The repo owns these files, so a re-run restores them -- but everything else in
+# the destination is left where it is, which is what tpm's plugin checkouts and
+# anything else a tool writes next to its config depend on. A file the repo also
+# ships is backed up before being replaced, so a local edit is recoverable
+# rather than silently lost.
+#
+# "What the repo owns" comes from git: tracked files, plus untracked ones git
+# isn't ignoring. So config/tmux/.gitignore, which already marks plugins/* as
+# runtime state, decides what gets copied without having to say so twice.
+# Submodules are listed by git as a single directory entry and so fall out of
+# the file loop below -- right, because a submodule is a dependency to install,
+# not config to copy. tpm in particular has to reach its destination as a real
+# git checkout (packages/tmux.sh does that): it decides which plugins are
+# already installed by running `git remote` in their directories, so a copy of
+# its files without the .git would look uninstalled to it.
+copy_config() {
   local src="$1" dst="$2"
-  if [ -L "$dst" ] && [ "$(readlink -f "$dst")" = "$(readlink -f "$src")" ]; then
-    return 0
+  local rel prefix file target stamp copied=0
+  local -a paths=() drifted=()
+
+  prefix="${src#"$DOTFILES_DIR"/}"
+  mapfile -t paths < <(
+    {
+      git -C "$DOTFILES_DIR" ls-files -- "$prefix"
+      git -C "$DOTFILES_DIR" ls-files --others --exclude-standard -- "$prefix"
+    } 2>/dev/null | sort -u
+  )
+  if [ ${#paths[@]} -eq 0 ]; then
+    err "no files to copy from $src (is it a git checkout?)"
+    return 1
   fi
-  if [ -e "$dst" ] || [ -L "$dst" ]; then
-    local backup="$dst.backup.$(date +%Y%m%d%H%M%S)"
-    warn "$dst already exists, moving it to $backup"
-    mv "$dst" "$backup"
+
+  # Older installs symlinked this at a checkout. The files live in the repo, so
+  # dropping the link loses nothing -- and leaving it would make the copies
+  # below write straight back into whichever checkout it points at.
+  if [ -L "$dst" ]; then
+    log "replacing the $dst symlink with real files"
+    rm -f "$dst"
   fi
-  mkdir -p "$(dirname "$dst")"
-  ln -sfn "$src" "$dst"
-  log "linked $dst -> $src"
+
+  stamp="$(date +%Y%m%d%H%M%S)"
+  for rel in "${paths[@]}"; do
+    file="$DOTFILES_DIR/$rel"
+    [ -f "$file" ] || continue
+    target="$dst/${rel#"$prefix"/}"
+    [ -f "$target" ] && cmp -s "$file" "$target" && continue
+    if [ -e "$target" ]; then
+      cp -p "$target" "$target.backup.$stamp"
+      drifted+=("${rel#"$prefix"/}")
+    fi
+    mkdir -p "$(dirname "$target")"
+    cp -p "$file" "$target"
+    copied=$((copied + 1))
+  done
+
+  if [ ${#drifted[@]} -gt 0 ]; then
+    warn "$dst had local edits to: ${drifted[*]}"
+    warn "  replaced from the repo; the old copies are alongside them as *.backup.$stamp"
+    warn "  to keep one for good, copy it into $src and commit it"
+  fi
+
+  if [ "$copied" -eq 0 ]; then
+    log "$dst already up to date"
+  else
+    log "copied $copied file(s) into $dst"
+  fi
 }
 
 # apt-get, but a no-op for anything already installed and quiet about it.
@@ -128,8 +221,14 @@ github_latest_tag() {
 
 # Download a release archive (.tar.gz / .zip) and drop the named binary into
 # ~/.local/bin. Keeps upstream-current tools working without root.
+#
+# Any arguments after the binary name are a smoke test: the extracted binary is
+# run with them first, and nothing is installed unless it exits 0. Worth passing
+# (`--version`) for anything whose upstream build may be linked against a newer
+# glibc than the machine has -- see packages/tree-sitter.sh.
 install_release_bin() {
   local url="$1" binary="$2" tmpdir archive found
+  shift 2
   tmpdir="$(mktemp -d)"
   archive="$tmpdir/archive"
 
@@ -154,6 +253,17 @@ install_release_bin() {
     err "$binary not found in $url"
     rm -rf "$tmpdir"
     return 1
+  fi
+
+  if [ "$#" -gt 0 ]; then
+    chmod +x "$found"
+    local output
+    if ! output="$("$found" "$@" 2>&1)"; then
+      warn "$binary from $url does not run on this machine:"
+      warn "  $(printf '%s' "$output" | head -1)"
+      rm -rf "$tmpdir"
+      return 1
+    fi
   fi
 
   mkdir -p "$LOCAL_BIN"

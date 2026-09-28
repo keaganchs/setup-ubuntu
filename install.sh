@@ -63,17 +63,39 @@ fi
 # Shell config
 #
 
+# Each of these three points ~/.<file> at this checkout, and drops the same
+# directive left behind by a checkout that has since moved or been deleted --
+# those are dead `source`/`$include` lines that make every new shell start with
+# a "No such file or directory".
+
 log "Wiring up bash"
 touch "$HOME/.bashrc"
-append_once "$HOME/.bashrc" "source \"$DOTFILES_DIR/bash/bashrc.sh\""
+append_once_owned "$HOME/.bashrc" "source \"$DOTFILES_DIR/bash/bashrc.sh\"" \
+  '^source ".*/bash/bashrc\.sh"$'
 
 log "Wiring up readline"
 # ~/.inputrc replaces /etc/inputrc rather than extending it, so pull the system
 # defaults back in before adding ours.
 append_once "$HOME/.inputrc" '$include /etc/inputrc'
-append_once "$HOME/.inputrc" "\$include $DOTFILES_DIR/bash/inputrc"
+append_once_owned "$HOME/.inputrc" "\$include $DOTFILES_DIR/bash/inputrc" \
+  '^\$include .*/bash/inputrc$'
 
 log "Wiring up git"
+# git keeps include.path as a multi-valued key rather than a file of lines, so
+# the stale-entry cleanup is the same idea spelled in git's own commands.
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  [ "$path" = "$DOTFILES_DIR/git/gitconfig" ] && continue
+  case "$path" in
+    */git/gitconfig)
+      warn "git included another checkout: $path"
+      warn "  replaced with $DOTFILES_DIR/git/gitconfig"
+      # --unset-all matches on a regex, so the old path has to be escaped.
+      git config --global --unset-all include.path "^$(printf '%s' "$path" | sed 's/[][\.*^$]/\\&/g')$"
+      ;;
+  esac
+done < <(git config --global --get-all include.path)
+
 git config --global --get-all include.path | grep -qxF "$DOTFILES_DIR/git/gitconfig" \
   || git config --global --add include.path "$DOTFILES_DIR/git/gitconfig"
 
@@ -81,9 +103,9 @@ git config --global --get-all include.path | grep -qxF "$DOTFILES_DIR/git/gitcon
 # Tool configs (these tools require their config to live in ~/.config)
 #
 
-log "Linking tool configs"
-link "$DOTFILES_DIR/config/nvim" "$HOME/.config/nvim"
-link "$DOTFILES_DIR/config/tmux" "$HOME/.config/tmux"
+log "Installing tool configs"
+copy_config "$DOTFILES_DIR/config/nvim" "$HOME/.config/nvim"
+copy_config "$DOTFILES_DIR/config/tmux" "$HOME/.config/tmux"
 
 # tpm ships as a submodule; a plain `git clone` of this repo leaves it empty.
 if [ ! -f "$DOTFILES_DIR/config/tmux/plugins/tpm/tpm" ]; then

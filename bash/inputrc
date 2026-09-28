@@ -5,3 +5,9 @@ set show-all-if-ambiguous On
 # Up/Down search history for what's already typed on the line.
 "\e[A": history-search-backward
 "\e[B": history-search-forward
+
+# Ctrl-Backspace deletes the word before the cursor: terminals send Ctrl-h
+# (0x08) for it, and readline's default there is a single-character backspace,
+# which Backspace already does. tmux leaves this key alone for the same reason
+# (see config/tmux/tmux.conf).
+"\C-h": backward-kill-word

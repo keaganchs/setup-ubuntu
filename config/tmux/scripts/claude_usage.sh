@@ -10,7 +10,8 @@
 CACHE_DIR="$HOME/.cache/tmux"
 CACHE_FILE="$CACHE_DIR/claude_usage"
 LOCK_FILE="$CACHE_DIR/claude_usage.lock"
-MAX_AGE=300 # seconds between refreshes
+MAX_AGE=300   # seconds between refreshes
+STALE_AGE=1800 # after this, say so rather than showing the old number as current
 
 mkdir -p "$CACHE_DIR"
 
@@ -19,12 +20,23 @@ if [ -f "$CACHE_FILE" ]; then
   age=$(( $(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0) ))
 fi
 
-if [ "$age" -ge "$MAX_AGE" ] && [ ! -e "$LOCK_FILE" ]; then
+if [ "$age" -ge "$MAX_AGE" ] && command -v claude >/dev/null 2>&1; then
   (
-    trap 'rm -f "$LOCK_FILE"' EXIT
-    : > "$LOCK_FILE"
-    claude -p "/usage" >"$CACHE_FILE.tmp" 2>/dev/null && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
-  ) &
+    # flock, not a lock file guarded by a trap: the kernel drops this lock
+    # however the process ends, so a refresh killed by a reboot or a killed
+    # tmux server can't leave a lock behind. One that did pinned this segment
+    # to a ten-day-old 4% -- every later run saw the file and skipped.
+    flock -n 9 || exit 0
+    tmp="$CACHE_FILE.tmp"
+    # timeout so a hung call releases the lock and tries again next tick;
+    # -s so a failed call (not logged in, no network) keeps the old cache
+    # rather than blanking the segment.
+    if timeout 60 claude -p "/usage" >"$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv "$tmp" "$CACHE_FILE"
+    else
+      rm -f "$tmp"
+    fi
+  ) 9>"$LOCK_FILE" &
   disown
 fi
 
@@ -44,4 +56,12 @@ if [ -n "$reset_epoch" ]; then
   time_str=" $(( remaining / 3600 ))h$(( (remaining % 3600) / 60 ))m"
 fi
 
-[ -n "$pct" ] && printf '#[fg=#0c1418,bg=#daab8e] 󱚝 #[fg=#cdd6f4,bg=#1f282e] %s%%%s ' "$pct" "$time_str"
+# A number no longer being refreshed is worse than no number, so mark it:
+# muted text and a "?" instead of the countdown, which is meaningless by then.
+fg="#cdd6f4"
+if [ "$age" -ge "$STALE_AGE" ]; then
+  fg="#6c7086"
+  time_str=" ?"
+fi
+
+[ -n "$pct" ] && printf '#[fg=#0c1418,bg=#8facda] 󱚝 #[fg=%s,bg=#1f282e] %s%%%s ' "$fg" "$pct" "$time_str"
