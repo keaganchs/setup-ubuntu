@@ -32,6 +32,16 @@ tmux() {
   esac
 }
 
+# clear: drop tmux's scrollback along with the screen. Without this the lines
+# are still there in the pane's history -- and, since tmux.conf has resurrect
+# capture the pane contents, they'd come back from a save as well.
+clear() {
+  command clear "$@"
+  local rc=$?
+  [ -n "${TMUX:-}" ] && tmux clear-history 2>/dev/null
+  return "$rc"
+}
+
 # Auto-activate ./.venv on cd, and deactivate when leaving the project.
 _venv_auto() {
   if [ -n "$VIRTUAL_ENV" ] && [[ "$PWD/" != "$(dirname "$VIRTUAL_ENV")/"* ]]; then

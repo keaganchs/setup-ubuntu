@@ -255,6 +255,17 @@ in each plugin directory and a copy without a `.git` reads as uninstalled.
   the program in the pane: `bash/inputrc` maps it to `backward-kill-word` and
   `config/nvim/init.lua` maps it to `<C-w>` for insert and command mode. Ctrl-w
   still deletes the bigger whitespace-delimited chunk in both.
+- **Scrollback is 500 lines, saved, and cleared by `clear`.**
+  `@resurrect-capture-pane-contents` puts each pane's scrollback into the save
+  (a `pane_contents.tar.gz` beside it), so a restored pane comes back with its
+  text instead of empty. `history-limit` is set to 500 *after* tpm, since
+  tmux-sensible raises it to 50000 and that much per pane makes for a heavy
+  save. tmux fixes the limit when a pane is created, so the new value applies
+  to new panes and existing ones keep what they were born with. Clearing also
+  clears the history, in both paths: the `clear` function in `bash/functions.sh`
+  (for the command) and a `C-l` binding in `tmux.conf` (for the key, which
+  readline handles without running anything). Otherwise cleared output would
+  still sit in the pane's history and come back through a restore.
 - **The Claude usage segment** (`config/tmux/scripts/claude_usage.sh`) shows
   the real percentage from `claude -p "/usage"`, which takes about a second, so
   the status bar only ever reads a cache in `~/.cache/tmux` that a background
