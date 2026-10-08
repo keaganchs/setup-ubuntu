@@ -4,9 +4,6 @@
 [init]
 	defaultBranch = main
 
-[credential]
-	credentialStore = gpg
-
 [pull]
 	rebase = false
 

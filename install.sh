@@ -128,9 +128,14 @@ if [ "$#" -gt 0 ]; then
   done
 else
   # base.sh first: the rest assume curl, git and a compiler are present.
+  # git.sh last: it's the only one that asks questions, so it waits until the
+  # unattended part of the run is over (see the block after this loop).
   scripts=("$DOTFILES_DIR/packages/base.sh")
   for script in "$DOTFILES_DIR"/packages/*.sh; do
-    [ "$script" = "$DOTFILES_DIR/packages/base.sh" ] || scripts+=("$script")
+    case "$script" in
+      "$DOTFILES_DIR"/packages/base.sh|"$DOTFILES_DIR"/packages/git.sh) ;;
+      *) scripts+=("$script") ;;
+    esac
   done
 fi
 
@@ -161,10 +166,11 @@ done
 # Interactive one-time setup
 #
 
-if [ -z "$(git config --global user.email || true)" ]; then
-  if confirm "Git identity and credential storage aren't configured. Set them up now?"; then
-    bash "$DOTFILES_DIR/scripts/git-credentials.sh" || FAILED+=("git-credentials")
-  fi
+# A no-op once git has an identity and a way to authenticate, so this only
+# asks on a first run. On its own:  bash install.sh git
+if [ "$#" -eq 0 ]; then
+  log "Running git"
+  bash "$DOTFILES_DIR/packages/git.sh" || FAILED+=("git")
 fi
 
 #

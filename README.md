@@ -59,9 +59,10 @@ Anything skipped is listed at the end of the run.
   the files the repo owns (what `git ls-files` reports, so `.gitignore` decides)
   and never deletes anything else in the destination, which is what lets tpm's
   plugin checkouts and nvim's plugin lockfile live alongside them.
-- `scripts/git-credentials.sh` — one-time interactive GPG + `pass` setup for
-  storing the GitHub token encrypted. `install.sh` offers to run it when git has
-  no global identity yet.
+- `packages/git.sh` — the one interactive script: git identity, then either an
+  SSH key (the default) or a personal access token kept in `pass`. Run it on its
+  own with `bash install.sh git`; a full run does it last, and it's a no-op once
+  configured. See *Git authentication* below.
 
 The nvim and tmux configs are adapted from
 [huterguier/nvim](https://github.com/huterguier/nvim) and
@@ -74,6 +75,43 @@ plugins tpm installs next to it are gitignored. tpm is the one thing under
 `~/.config/tmux/plugins/tpm` and checks out the revision the submodule pins,
 because tpm decides which plugins are already installed by running `git remote`
 in each plugin directory and a copy without a `.git` reads as uninstalled.
+
+## Git authentication
+
+```
+bash install.sh git
+```
+
+Asks for a name and email, then for how to authenticate to a host (default
+`github.com`). Both options keep the secret encrypted on disk and neither opens
+a browser.
+
+**SSH (the default, and what to use on a server).** Generates
+`~/.ssh/<host>` if it isn't there, prompts for a passphrase — that's the
+encryption — adds a `Host` block to `~/.ssh/config` with `AddKeysToAgent yes`
+so the passphrase is asked for once per login, prints the public key to
+register, and sets
+
+```
+url.git@<host>:.insteadOf = https://<host>/
+```
+
+so repos already cloned over https push over SSH without their remotes being
+touched. The one cost of that rewrite: tools fetching *public* dependencies
+from the same host (cargo, go, pip) also switch to SSH and need the key in an
+agent. If that breaks an unattended build, change `insteadOf` to
+`pushInsteadOf` in `~/.gitconfig` — fetches go back to https and only pushes
+need the key.
+
+**Personal access token.** For hosts that block SSH. Sets up a GPG key and a
+`pass` store if they don't exist, reads the token into `pass` at `git/<host>`,
+and registers a credential helper that hands it to git on demand. The token
+never lands in a plaintext file; `pass edit git/<host>` rotates it.
+
+Previously this repo set `credential.credentialStore` for
+git-credential-manager, which it never installed and which is what made pushes
+open a browser. `install.sh git` removes the leftover global
+`credential.helper` when it runs.
 
 ## Notes
 
